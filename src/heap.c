@@ -54,7 +54,7 @@ heap_t* heap_create(size_t grow_increment)
 
 void* heap_alloc(heap_t* heap, size_t size, size_t alignment)
 {
-	void* address = tlsf_memalign(heap->tlsf, alignment, size + sizeof(storage_t));
+	void* address = tlsf_memalign(heap->tlsf, alignment, size);
 	if (!address)
 	{
 		size_t arena_size =
@@ -76,7 +76,7 @@ void* heap_alloc(heap_t* heap, size_t size, size_t alignment)
 		arena->next = heap->arena;
 		heap->arena = arena;
 
-		address = tlsf_memalign(heap->tlsf, alignment, size + sizeof(storage_t));
+		address = tlsf_memalign(heap->tlsf, alignment, size);
 	}
 	if (address) {
 		// Adds data to the struct
