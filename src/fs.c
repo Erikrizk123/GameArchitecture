@@ -278,7 +278,7 @@ static int comp_decomp_thread_func(void* user)
 				work->buffer = data; // set buffer to decompressed file
 				work->size = decompressed_size; // setting the size to the decompressed size
 				if (work->null_terminate) {
-					((char*)work->buffer)[work->size] = 0;
+					((char*)work->buffer)[work->size] = '\0';
 				}
 				event_signal(work->done);
 				break;
