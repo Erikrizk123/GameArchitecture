@@ -17,20 +17,21 @@ typedef struct arena_t
 } arena_t;
 
 // Stores backtrace, address of memory, size of individual memory, ptr to next storage
-typedef struct storage_t
+/*typedef struct storage_t
 {
 	void** backtrace;
 	void* address;
 	size_t size;
 	struct storage_t* s_next;
 } storage_t;
+*/
 
 typedef struct heap_t
 {
 	tlsf_t tlsf;
 	size_t grow_increment;
 	arena_t* arena;
-	struct storage_t* s_next; // ptr to first memory alloc data
+	/* struct storage_t* s_next; */ // ptr to first memory alloc data
 	mutex_t* mutex;
 } heap_t;
 
@@ -83,12 +84,12 @@ void* heap_alloc(heap_t* heap, size_t size, size_t alignment)
 
 		address = tlsf_memalign(heap->tlsf, alignment, size);
 	}
-	if (address) {
+	/* if (address) {
 		// Adds data to the struct
 		storage_t* storage = VirtualAlloc(NULL, sizeof(storage_t),
 			MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 		storage->address = address;
-		debug_backtrace(storage->backtrace, 8);
+		// debug_backtrace(storage->backtrace, 8);
 		storage->size = size;
 
 		// Connects the ptr of last added memory data to current memory data
@@ -102,7 +103,8 @@ void* heap_alloc(heap_t* heap, size_t size, size_t alignment)
 		else {
 			heap->s_next = storage;
 		}
-	}
+	}*/
+	
 
 	mutex_unlock(heap->mutex);
 
@@ -114,7 +116,7 @@ void heap_free(heap_t* heap, void* address)
 	mutex_lock(heap->mutex);
 	tlsf_free(heap->tlsf, address);
 	// finds which memory storage matches the address
-	storage_t* prev = heap->s_next;
+	/*storage_t* prev = heap->s_next;
 	storage_t* cur = heap->s_next;
 	while (cur->address != address) {
 		prev = cur;
@@ -137,13 +139,14 @@ void heap_free(heap_t* heap, void* address)
 		else {
 			prev->s_next = cur->s_next;
 		}
-	}
+	} */
 	mutex_unlock(heap->mutex);
 }
 
 void heap_destroy(heap_t* heap)
 {
 	// if there is still unfreed memory
+	/*
 	if (heap->s_next) {
 		storage_t* cur = heap->s_next;
 		while (cur != NULL) {
@@ -155,7 +158,7 @@ void heap_destroy(heap_t* heap)
 			cur = cur->s_next;
 		}
 	}
-
+	*/
 	tlsf_destroy(heap->tlsf);
 
 	arena_t* arena = heap->arena;
