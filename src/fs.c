@@ -278,19 +278,19 @@ static int comp_decomp_thread_func(void* user)
 				work->buffer = data; // set buffer to decompressed file
 				work->size = decompressed_size; // setting the size to the decompressed size
 				if (work->null_terminate) {
-					((char*)work->buffer)[work->size] = '\0';
+					((char*)work->buffer)[work->size] = '\0'; // if null terminate is true
 				}
-				event_signal(work->done);
+				event_signal(work->done); // Work is done
 				break;
 			}
 		case k_fs_work_op_write:
 			{
-				int buffer_size = LZ4_compressBound((int)work->size);
-				void* data = heap_alloc(fs->heap, buffer_size, 8);
-				int compressed_size = LZ4_compress_default(work->buffer, data, (int)work->size, buffer_size);
-				work->buffer = data;
-				work->size = compressed_size;
-				queue_push(fs->file_queue, work);
+				int buffer_size = LZ4_compressBound((int)work->size); // size of compressed file
+				void* data = heap_alloc(fs->heap, buffer_size, 8); // allocate memory for compressed file 
+				int compressed_size = LZ4_compress_default(work->buffer, data, (int)work->size, buffer_size); // compressing the file
+				work->buffer = data; // setting new data
+				work->size = compressed_size; // setting new size to compressed size
+				queue_push(fs->file_queue, work); // pushing compressed file to file queue
 				break;
 			}
 		}
