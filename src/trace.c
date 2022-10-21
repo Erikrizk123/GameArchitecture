@@ -138,6 +138,7 @@ void trace_duration_pop(trace_t* trace)
 	eve->popped = true;
 	pop->popped = true;
 
+	// Stores event
 	event_t* cur_event = trace->next;
 	while (cur_event->next != NULL) {
 		cur_event = cur_event->next;
@@ -152,21 +153,25 @@ void trace_duration_pop(trace_t* trace)
 
 void trace_capture_start(trace_t* trace, const char* path)
 {
+	// checks if capture started
 	if (trace->recording) {
 		return;
 	}
+	// Starts capture and sets path
 	trace->recording = true;
 	trace->path = _strdup(path);
 }
 
 void trace_capture_stop(trace_t* trace)
 {
+	// Checks if capture was not starded and stops capture
 	if (trace->recording == false) {
 		return;
 	}
 	trace->recording = false;
+
+	// Creates formatted json file with pushed and popped events
 	char output[4096] = "{\n\t\"displayTimeUnit\": \"ns\", \"traceEvents\": [";
-	
 	char buffer[256];
 	event_t* eve = trace->next;
 	while (eve != NULL) {
@@ -189,6 +194,7 @@ void trace_capture_stop(trace_t* trace)
 	char* end = "\n\t]\n}";
 	strcat_s(output, 4096 - strlen(output), end);
 	
+	// Creates and writes in file
 	fs_work_t* work = fs_write(trace->fs, trace->path, output, strlen(output), false);
 	fs_work_is_done(work);
 }
