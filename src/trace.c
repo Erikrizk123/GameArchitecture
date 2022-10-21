@@ -1,6 +1,5 @@
 #include "trace.h"
 
-#include <stddef.h>
 
 trace_t* trace_create(heap_t* heap, int event_capacity)
 {
