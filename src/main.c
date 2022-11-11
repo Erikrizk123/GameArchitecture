@@ -72,7 +72,7 @@ static void homework3_slow_function(trace_t* trace)
 
 static int homework3_test_func(void* data)
 {
-	trace_t* trace = data;
+	trace_t* trace = data; 
 	homework3_slow_function(trace);
 	return 0;
 }
@@ -91,7 +91,7 @@ static void homework3_test()
 	// Capturing has *not* started so these calls can safely be ignored.
 	trace_duration_push(trace, "should be ignored");
 	trace_duration_pop(trace);
-
+	
 	// Start capturing events.
 	// Eventually we will want to write events to a file -- "trace.json".
 	// However we should *not* write to the file for each call to trace_duration_push or

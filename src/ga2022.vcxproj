@@ -188,6 +188,7 @@
     <ClInclude Include="wm.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="trace.json" />
     <None Include="x64\Debug\ga2022.exe" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
