@@ -78,7 +78,7 @@ simple_game_t* simple_game_create(heap_t* heap, fs_t* fs, wm_window_t* window, r
 	game->render = render;
 
 	game->timer = timer_object_create(heap, NULL);
-	
+
 	game->ecs = ecs_create(heap);
 	game->transform_type = ecs_register_component_type(game->ecs, "transform", sizeof(transform_component_t), _Alignof(transform_component_t));
 	game->camera_type = ecs_register_component_type(game->ecs, "camera", sizeof(camera_component_t), _Alignof(camera_component_t));
@@ -284,3 +284,4 @@ static void draw_models(simple_game_t* game)
 		}
 	}
 }
+

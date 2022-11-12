@@ -18,3 +18,4 @@ void simple_game_destroy(simple_game_t* game);
 
 // Per-frame update for our simple test game.
 void simple_game_update(simple_game_t* game);
+#pragma once
