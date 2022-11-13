@@ -10,6 +10,8 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <string.h>
+#include <stdio.h>
+
 
 typedef struct transform_component_t
 {
@@ -59,11 +61,22 @@ typedef struct frogger_game_t
 	int player_type;
 	int obstacle_type;
 	int name_type;
+	ecs_entity_ref_t obstacle_ent;
 	ecs_entity_ref_t player_ent;
 	ecs_entity_ref_t camera_ent;
 
+	int obstacle1_spawn_time;
+	int obstacle2_spawn_time;
+	int obstacle3_spawn_time;
+
+
 	gpu_mesh_info_t cube_mesh;
-	gpu_shader_info_t cube_shader;
+	gpu_shader_info_t shader;
+
+	gpu_mesh_info_t obstacle1_mesh;
+	gpu_mesh_info_t obstacle2_mesh;
+	gpu_mesh_info_t obstacle3_mesh;
+
 	fs_work_t* vertex_shader_work;
 	fs_work_t* fragment_shader_work;
 } frogger_game_t;
@@ -71,8 +84,10 @@ typedef struct frogger_game_t
 static void load_resources(frogger_game_t* game);
 static void unload_resources(frogger_game_t* game);
 static void spawn_player(frogger_game_t* game, int index);
+static void spawn_obstacle(frogger_game_t* game, int index);
 static void spawn_camera(frogger_game_t* game);
 static void update_players(frogger_game_t* game);
+static void update_obstacles(frogger_game_t* game);
 static void draw_models(frogger_game_t* game);
 
 frogger_game_t* frogger_game_create(heap_t* heap, fs_t* fs, wm_window_t* window, render_t* render)
@@ -93,8 +108,14 @@ frogger_game_t* frogger_game_create(heap_t* heap, fs_t* fs, wm_window_t* window,
 	game->obstacle_type = ecs_register_component_type(game->ecs, "obstacle", sizeof(obstacle_component_t), _Alignof(obstacle_component_t));
 	game->name_type = ecs_register_component_type(game->ecs, "name", sizeof(name_component_t), _Alignof(name_component_t));
 
+	game->obstacle1_spawn_time = 0;
+	game->obstacle2_spawn_time = 0;
+	game->obstacle3_spawn_time = 0;
+
+
+
 	load_resources(game);
-	spawn_player(game, 0);
+	spawn_player(game, 1);
 	spawn_camera(game);
 
 	return game;
@@ -112,7 +133,26 @@ void frogger_game_update(frogger_game_t* game)
 {
 	timer_object_update(game->timer);
 	ecs_update(game->ecs);
+
+	// Spawn obstacles at given intervals
+
+	int time = (int)((float)timer_object_get_ms(game->timer) * 0.001f);
+	if (time - game->obstacle1_spawn_time == 0) {
+		spawn_obstacle(game, -1);
+		game->obstacle1_spawn_time += (rand() % 3) + 3;
+	}
+	if (time - game->obstacle2_spawn_time == 0) {
+		spawn_obstacle(game, 0);
+		game->obstacle2_spawn_time += (rand() % 3) + 2;
+	}
+
+	if (time - game->obstacle3_spawn_time == 0) {
+		spawn_obstacle(game, 1);
+		game->obstacle3_spawn_time += (rand() % 1) + 2;
+	}
+
 	update_players(game);
+	update_obstacles(game);
 	draw_models(game);
 	render_push_done(game->render);
 }
@@ -121,7 +161,7 @@ static void load_resources(frogger_game_t* game)
 {
 	game->vertex_shader_work = fs_read(game->fs, "shaders/triangle.vert.spv", game->heap, false, false);
 	game->fragment_shader_work = fs_read(game->fs, "shaders/triangle.frag.spv", game->heap, false, false);
-	game->cube_shader = (gpu_shader_info_t)
+	game->shader = (gpu_shader_info_t)
 	{
 		.vertex_shader_data = fs_work_get_buffer(game->vertex_shader_work),
 		.vertex_shader_size = fs_work_get_size(game->vertex_shader_work),
@@ -132,14 +172,14 @@ static void load_resources(frogger_game_t* game)
 
 	static vec3f_t cube_verts[] =
 	{
-		{ -1.0f, -1.0f,  1.0f }, { 0.0f, 1.0f,  1.0f },
-		{  1.0f, -1.0f,  1.0f }, { 1.0f, 0.0f,  1.0f },
-		{  1.0f,  1.0f,  1.0f }, { 1.0f, 1.0f,  0.0f },
-		{ -1.0f,  1.0f,  1.0f }, { 1.0f, 0.0f,  0.0f },
-		{ -1.0f, -1.0f, -1.0f }, { 0.0f, 1.0f,  0.0f },
-		{  1.0f, -1.0f, -1.0f }, { 0.0f, 0.0f,  1.0f },
-		{  1.0f,  1.0f, -1.0f }, { 1.0f, 1.0f,  1.0f },
-		{ -1.0f,  1.0f, -1.0f }, { 0.0f, 0.0f,  0.0f },
+		{ -0.25f, -0.25f,  0.25f }, { 0.0f, 0.25f,  0.25f },
+		{  0.25f, -0.25f,  0.25f }, { 0.25f, 0.0f,  0.25f },
+		{  0.25f,  0.25f,  0.25f }, { 0.25f, 0.25f,  0.0f },
+		{ -0.25f,  0.25f,  0.25f }, { 0.25f, 0.0f,  0.0f },
+		{ -0.25f, -0.25f, -0.25f }, { 0.0f, 0.25f,  0.0f },
+		{  0.25f, -0.25f, -0.25f }, { 0.0f, 0.0f,  0.25f },
+		{  0.25f,  0.25f, -0.25f }, { 0.25f, 0.25f,  0.25f },
+		{ -0.25f,  0.25f, -0.25f }, { 0.0f, 0.0f,  0.0f },
 	};
 	static uint16_t cube_indices[] =
 	{
@@ -164,6 +204,67 @@ static void load_resources(frogger_game_t* game)
 		.index_data = cube_indices,
 		.index_data_size = sizeof(cube_indices),
 	};
+
+	static vec3f_t obstacle1_verts[] =
+	{
+		{ -0.25f, -0.75f,  0.25f }, { 0.0f, 0.25f,  0.25f },
+		{  0.25f, -0.75f,  0.25f }, { 0.25f, 0.0f,  0.25f },
+		{  0.25f,  0.75f,  0.25f }, { 0.25f, 0.25f,  0.0f },
+		{ -0.25f,  0.75f,  0.25f }, { 0.25f, 0.0f,  0.0f },
+		{ -0.25f, -0.75f, -0.25f }, { 0.0f, 0.25f,  0.0f },
+		{  0.25f, -0.75f, -0.25f }, { 0.0f, 0.0f,  0.25f },
+		{  0.25f,  0.75f, -0.25f }, { 0.25f, 0.25f,  0.25f },
+		{ -0.25f,  0.75f, -0.25f }, { 0.0f, 0.0f,  0.0f },
+	};
+	game->obstacle1_mesh = (gpu_mesh_info_t)
+	{
+		.layout = k_gpu_mesh_layout_tri_p444_c444_i2,
+		.vertex_data = obstacle1_verts,
+		.vertex_data_size = sizeof(obstacle1_verts),
+		.index_data = cube_indices,
+		.index_data_size = sizeof(cube_indices),
+	};
+
+	static vec3f_t obstacle2_verts[] =
+	{
+		{ -0.25f, -1.0f,  0.25f }, { 0.0f, 0.25f,  0.25f },
+		{  0.25f, -1.0f,  0.25f }, { 0.25f, 0.0f,  0.25f },
+		{  0.25f,  1.0f,  0.25f }, { 0.25f, 0.25f,  0.0f },
+		{ -0.25f,  1.0f,  0.25f }, { 0.25f, 0.0f,  0.0f },
+		{ -0.25f, -1.0f, -0.25f }, { 0.0f, 0.25f,  0.0f },
+		{  0.25f, -1.0f, -0.25f }, { 0.0f, 0.0f,  0.25f },
+		{  0.25f,  1.05f, -0.25f }, { 0.25f, 0.25f,  0.25f },
+		{ -0.25f,  1.0f, -0.25f }, { 0.0f, 0.0f,  0.0f },
+	};
+	game->obstacle2_mesh = (gpu_mesh_info_t)
+	{
+		.layout = k_gpu_mesh_layout_tri_p444_c444_i2,
+		.vertex_data = obstacle2_verts,
+		.vertex_data_size = sizeof(obstacle2_verts),
+		.index_data = cube_indices,
+		.index_data_size = sizeof(cube_indices),
+	};
+
+	static vec3f_t obstacle3_verts[] =
+	{
+		{ -0.25f, -0.5f,  0.25f }, { 0.0f, 0.25f,  0.25f },
+		{  0.25f, -0.5f,  0.25f }, { 0.25f, 0.0f,  0.25f },
+		{  0.25f,  0.5f,  0.25f }, { 0.25f, 0.25f,  0.0f },
+		{ -0.25f,  0.5f,  0.25f }, { 0.25f, 0.0f,  0.0f },
+		{ -0.25f, -0.5f, -0.25f }, { 0.0f, 0.25f,  0.0f },
+		{  0.25f, -0.5f, -0.25f }, { 0.0f, 0.0f,  0.25f },
+		{  0.25f,  0.5f, -0.25f }, { 0.25f, 0.25f,  0.25f },
+		{ -0.25f,  0.5f, -0.25f }, { 0.0f, 0.0f,  0.0f },
+	};
+	game->obstacle3_mesh = (gpu_mesh_info_t)
+	{
+		.layout = k_gpu_mesh_layout_tri_p444_c444_i2,
+		.vertex_data = obstacle3_verts,
+		.vertex_data_size = sizeof(obstacle3_verts),
+		.index_data = cube_indices,
+		.index_data_size = sizeof(cube_indices),
+	};
+
 }
 
 static void unload_resources(frogger_game_t* game)
@@ -183,7 +284,9 @@ static void spawn_player(frogger_game_t* game, int index)
 
 	transform_component_t* transform_comp = ecs_entity_get_component(game->ecs, game->player_ent, game->transform_type, true);
 	transform_identity(&transform_comp->transform);
-	transform_comp->transform.translation.y = (float)index * 5.0f;
+	// transform_comp->transform.translation.y = (float)index * 2.0f;
+	transform_comp->transform.translation.z = (float)index * 3.5f;
+
 
 	name_component_t* name_comp = ecs_entity_get_component(game->ecs, game->player_ent, game->name_type, true);
 	strcpy_s(name_comp->name, sizeof(name_comp->name), "player");
@@ -193,8 +296,46 @@ static void spawn_player(frogger_game_t* game, int index)
 
 	model_component_t* model_comp = ecs_entity_get_component(game->ecs, game->player_ent, game->model_type, true);
 	model_comp->mesh_info = &game->cube_mesh;
-	model_comp->shader_info = &game->cube_shader;
+	model_comp->shader_info = &game->shader;
 }
+
+static void spawn_obstacle(frogger_game_t* game, int index)
+{
+	uint64_t k_obstacle_ent_mask =
+		(1ULL << game->transform_type) |
+		(1ULL << game->model_type) |
+		(1ULL << game->obstacle_type) |
+		(1ULL << game->name_type);
+	game->obstacle_ent = ecs_entity_add(game->ecs, k_obstacle_ent_mask);
+
+	transform_component_t* transform_comp = ecs_entity_get_component(game->ecs, game->obstacle_ent, game->transform_type, true);
+	transform_identity(&transform_comp->transform);
+
+	transform_comp->transform.translation.y = -10.0f;
+	transform_comp->transform.translation.z = (float)index * -2.0f;
+
+
+	name_component_t* name_comp = ecs_entity_get_component(game->ecs, game->obstacle_ent, game->name_type, true);
+	strcpy_s(name_comp->name, sizeof(name_comp->name), "obstacle");
+
+	obstacle_component_t* obstacle_comp = ecs_entity_get_component(game->ecs, game->obstacle_ent, game->obstacle_type, true);
+	obstacle_comp->index = index;
+
+	model_component_t* model_comp = ecs_entity_get_component(game->ecs, game->obstacle_ent, game->model_type, true);
+
+	int r = rand() % 3;
+	if (r == 0) {
+		model_comp->mesh_info = &game->obstacle1_mesh;
+	}
+	else if (r == 1) {
+		model_comp->mesh_info = &game->obstacle2_mesh;
+	}
+	else {
+		model_comp->mesh_info = &game->obstacle3_mesh;
+	}
+	model_comp->shader_info = &game->shader;
+}
+
 
 static void spawn_camera(frogger_game_t* game)
 {
@@ -249,8 +390,52 @@ static void update_players(frogger_game_t* game)
 			move.translation = vec3f_add(move.translation, vec3f_scale(vec3f_right(), dt));
 		}
 		transform_multiply(&transform_comp->transform, &move);
+
+		if (transform_comp->transform.translation.z < -4.5f)
+		{
+			ecs_entity_remove(game->ecs, ecs_query_get_entity(game->ecs, &query), false);
+			spawn_player(game, 1);
+		}
 	}
 }
+
+// Moves obstacles and deletes when the are past the screen
+void update_obstacles(frogger_game_t* game)
+{
+	float dt = (float)timer_object_get_delta_ms(game->timer) * 0.001f;
+
+	uint64_t k_query_mask = (1ULL << game->transform_type) | (1ULL << game->obstacle_type);
+
+	for (ecs_query_t query = ecs_query_create(game->ecs, k_query_mask);
+		ecs_query_is_valid(game->ecs, &query);
+		ecs_query_next(game->ecs, &query))
+	{
+		transform_component_t* transform_comp = ecs_query_get_component(game->ecs, &query, game->transform_type);
+		obstacle_component_t* obstacle_comp = ecs_query_get_component(game->ecs, &query, game->obstacle_type);
+
+		transform_t move;
+		transform_identity(&move);
+
+
+		if (transform_comp->transform.translation.z == 2.0f) {
+			move.translation = vec3f_add(move.translation, vec3f_scale(vec3f_right(), dt));
+		}
+		else if (transform_comp->transform.translation.z == 0.0f) {
+			move.translation = vec3f_add(move.translation, vec3f_scale(vec3f_right(), dt * 1.5f));
+		}
+		else {
+			move.translation = vec3f_add(move.translation, vec3f_scale(vec3f_right(), dt * 2.0f));
+		}
+		transform_multiply(&transform_comp->transform, &move);
+
+		if (transform_comp->transform.translation.y > 9.0f)
+		{
+			ecs_entity_remove(game->ecs, ecs_query_get_entity(game->ecs, &query), false);
+		}
+
+	}
+}
+
 
 static void draw_models(frogger_game_t* game)
 {
