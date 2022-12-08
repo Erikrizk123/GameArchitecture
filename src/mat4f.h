@@ -5,6 +5,10 @@
 
 #include <stdbool.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct quatf_t quatf_t;
 typedef struct vec3f_t vec3f_t;
 
@@ -56,3 +60,8 @@ void mat4f_make_perspective(mat4f_t* m, float angle, float aspect, float z_near,
 
 // Creates a view matrix given an eye location, facing direction, and up vector.
 void mat4f_make_lookat(mat4f_t* m, const vec3f_t* eye, const vec3f_t* dir, const vec3f_t* up);
+
+
+#ifdef __cplusplus
+}
+#endif

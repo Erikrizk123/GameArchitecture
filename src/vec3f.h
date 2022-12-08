@@ -4,6 +4,10 @@
 
 #include "math.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct vec3f_t
 {
 	union
@@ -185,3 +189,7 @@ __forceinline vec3f_t vec3f_cross(vec3f_t a, vec3f_t b)
 		.z = a.x * b.y - a.y * b.x,
 	};
 }
+
+#ifdef __cplusplus
+}
+#endif

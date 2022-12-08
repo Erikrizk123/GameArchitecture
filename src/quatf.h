@@ -4,6 +4,10 @@
 
 #include "vec3f.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Quaternion object.
 typedef struct quatf_t
 {
@@ -56,3 +60,8 @@ vec3f_t quatf_to_eulers(quatf_t q);
 
 // Converts roll, yaw, pitch in radians to a quaternion.
 quatf_t quatf_from_eulers(vec3f_t euler_angles);
+
+
+#ifdef __cplusplus
+}
+#endif

@@ -7,6 +7,10 @@
 #include "quatf.h"
 #include "vec3f.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Transform object.
 typedef struct transform_t
 {
@@ -29,3 +33,7 @@ void transform_invert(transform_t* transform);
 
 // Transform a vector by a transform object. Return the resulting vector.
 vec3f_t transform_transform_vec3(const transform_t* transform, vec3f_t v);
+
+#ifdef __cplusplus
+}
+#endif
